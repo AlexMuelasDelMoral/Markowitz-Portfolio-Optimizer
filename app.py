@@ -137,7 +137,6 @@ PLOTLY_BASE = dict(
     font=dict(family="'JetBrains Mono', monospace", color="#C9CDD6", size=11),
     xaxis=dict(gridcolor="#1A1F2E", linecolor="#1E2535", zerolinecolor="#1E2535", tickfont=dict(size=10)),
     yaxis=dict(gridcolor="#1A1F2E", linecolor="#1E2535", zerolinecolor="#1E2535", tickfont=dict(size=10)),
-    margin=dict(l=55, r=25, t=35, b=50),
     hovermode="closest",
     legend=dict(
         bgcolor="#111520", bordercolor="#1E2535", borderwidth=1,
@@ -178,10 +177,18 @@ with st.sidebar:
     if input_mode == "Type tickers":
         tickers_raw = st.text_input(
             "Tickers",
-            value="AAPL, MSFT, GOOGL, AMZN, NVDA",
+            value=(
+                "AAPL, MSFT, NVDA, META, GOOGL, AMZN, AVGO, ASML, TSLA, "
+                "JNJ, UNH, PFE, MRK, LLY, "
+                "JPM, BAC, GS, MS, V, MA, "
+                "XOM, CVX, BHP, RIO, FCX, LIN, "
+                "SPY, QQQ, IWM, "
+                "VEA, VWO, EEM, "
+                "TLT, IEF, SHY, LQD, AGG"
+            ),
             placeholder="AAPL, MSFT, GOOGL ...",
             label_visibility="collapsed",
-        )
+    )
     else:
         st.caption("Paste from Excel, Bloomberg, or any source. Tickers are extracted automatically — weights and numbers are ignored.")
         tickers_raw = st.text_area(
@@ -206,6 +213,47 @@ with st.sidebar:
 
     run_button = st.button("Run Optimization", use_container_width=True)
 
+def render_dark_table(df: pd.DataFrame):
+    styled = (
+        df.style
+        .set_properties(**{
+            "background-color": "#0B0E11",
+            "color": "#E8EAED",
+            "border-color": "#1E2535",
+            "font-family": "'JetBrains Mono', monospace",
+            "font-size": "0.78rem",
+            "padding": "6px 10px",
+        })
+        .set_table_styles([
+            {
+                "selector": "thead th",
+                "props": [
+                    ("background-color", "#111520"),
+                    ("color", "#C9CDD6"),
+                    ("font-weight", "600"),
+                    ("letter-spacing", "0.08em"),
+                    ("text-transform", "uppercase"),
+                    ("border-bottom", "1px solid #1E2535"),
+                ],
+            },
+            {
+                "selector": "tbody tr:hover",
+                "props": [
+                    ("background-color", "#121A2B"),
+                ],
+            },
+            {
+                "selector": "table",
+                "props": [
+                    ("border-collapse", "collapse"),
+                    ("width", "100%"),
+                ],
+            },
+        ])
+        .hide(axis="index")
+    )
+
+    st.markdown(styled.to_html(), unsafe_allow_html=True)
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if run_button:
@@ -268,7 +316,7 @@ if run_button:
             for t in daily_returns.columns
         ],
     })
-    st.dataframe(stats_df, hide_index=True, use_container_width=True)
+    render_dark_table(stats_df)
 
     # ── 3. Optimal portfolios ─────────────────────────────────────────────────
     max_sharpe_w = max_sharpe_portfolio(mean_returns, cov_matrix, risk_free_rate)
@@ -302,7 +350,6 @@ if run_button:
             fig_w.update_layout(
                 **PLOTLY_BASE, height=210, showlegend=False,
                 xaxis_title="", yaxis_title="",
-                margin=dict(l=10, r=10, t=10, b=30),
             )
             fig_w.update_yaxes(tickformat=".0%", showgrid=False)
             st.plotly_chart(fig_w, use_container_width=True)
@@ -400,7 +447,7 @@ if run_button:
             .sort_values("_w", ascending=False)
             .drop(columns="_w")
         )
-        st.dataframe(cdf, hide_index=True, use_container_width=True)
+        render_dark_table(cdf)
     else:
         st.warning("No feasible portfolio found for this target return.")
 
